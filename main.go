@@ -5,15 +5,23 @@ import (
 	"libration-query-generator/datamining"
 	"os"
 	"log"
+	"github.com/alexflint/go-arg"
 )
 
 func main() {
-	var filepath = os.Args[1]
+	var args struct {
+		Filepath string `arg:"-f,required"`
+		OnlyPure bool `arg:"-p"`
+	}
+
+	arg.MustParse(&args)
+
+	var filepath = args.Filepath
 	var ints = datamining.Build(filepath)
 	const planet1 = "JUPITER"
 	const planet2 = "SATURN"
 	for _, value := range ints {
-		var asteroidNumbers = datamining.FetchLibrations(value, planet1, planet2)
+		var asteroidNumbers = datamining.FetchLibrations(value, planet1, planet2, args.OnlyPure)
 
 		if len(asteroidNumbers) == 0 {
 			continue

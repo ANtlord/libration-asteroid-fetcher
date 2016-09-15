@@ -9,7 +9,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func buildQuery(byIntegers *Integers, planet1, planet2 string) *string {
+func buildQuery(byIntegers *Integers, planet1, planet2 string, onlyPure bool) *string {
 	var sel = "SELECT substring(asteroid.name, 2, length(asteroid.name)-1)::int"
 	var from = "FROM libration"
 	var joins = []string{
@@ -25,6 +25,12 @@ func buildQuery(byIntegers *Integers, planet1, planet2 string) *string {
 		fmt.Sprintf("AND planet_2.longitude_coeff = %d", byIntegers.Second),
 		fmt.Sprintf("AND asteroid.longitude_coeff = %d", byIntegers.Asteroid),
 	}
+	if onlyPure {
+		var lengthStr = "array_length(libration.circulation_breaks, 1)"
+		var pureCond = fmt.Sprintf("AND (%s < 2 OR %s IS NULL)", lengthStr, lengthStr)
+		conditions = append(conditions, pureCond)
+	}
+
 	var order = "ORDER BY substring(asteroid.name, 2, length(asteroid.name)-1)::int;"
 	var query = fmt.Sprintf(
 		"%s %s %s %s %s", sel, from, strings.Join(joins, " "),
@@ -50,10 +56,10 @@ func getDB() *sql.DB {
 
 // FetchLibrations returns array of numbers of asteroids, that librates in
 // pointed Integers.
-func FetchLibrations(byIntegers *Integers, planet1, planet2 string) []string {
+func FetchLibrations(byIntegers *Integers, planet1, planet2 string, onlyPure bool) []string {
 	var res = make([]string, 0, 100)
 	db = getDB()
-	var query = buildQuery(byIntegers, planet1, planet2)
+	var query = buildQuery(byIntegers, planet1, planet2, onlyPure)
 	rows, err := db.Query(*query)
 	if err != nil {
 		log.Fatal(err)
