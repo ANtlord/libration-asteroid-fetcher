@@ -2,12 +2,21 @@
 package datamining
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"strings"
-	"database/sql"
+
 	_ "github.com/lib/pq"
 )
+
+type Miner struct {
+	User,
+	Password,
+	Database,
+	Host,
+	Port string
+}
 
 func buildQuery(byIntegers *Integers, planet1, planet2 string, onlyPure bool) *string {
 	var sel = "SELECT substring(asteroid.name, 2, length(asteroid.name)-1)::int"
@@ -43,10 +52,19 @@ func buildQuery(byIntegers *Integers, planet1, planet2 string, onlyPure bool) *s
 var db *sql.DB = nil
 
 // Do you think, this is mistake? Wrong. It is the lack of time.
-func getDB() *sql.DB {
+func (miner *Miner) getDB() *sql.DB {
 	if db == nil {
 		var err error
-		db, err = sql.Open("postgres", "postgres://postgres:qweasd@192.168.0.100/resonances?sslmode=disable")
+		var connection_address = fmt.Sprintf(
+			"postgres://%s:%s@%s:%s/%s?sslmode=disable",
+			miner.User,
+			miner.Password,
+			miner.Host,
+			miner.Port,
+			miner.Database,
+		)
+		fmt.Println(connection_address)
+		db, err = sql.Open("postgres", connection_address)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -56,9 +74,9 @@ func getDB() *sql.DB {
 
 // FetchLibrations returns array of numbers of asteroids, that librates in
 // pointed Integers.
-func FetchLibrations(byIntegers *Integers, planet1, planet2 string, onlyPure bool) []string {
+func (miner *Miner) FetchLibrations(byIntegers *Integers, planet1, planet2 string, onlyPure bool) []string {
 	var res = make([]string, 0, 100)
-	db = getDB()
+	db = miner.getDB()
 	var query = buildQuery(byIntegers, planet1, planet2, onlyPure)
 	rows, err := db.Query(*query)
 	if err != nil {
